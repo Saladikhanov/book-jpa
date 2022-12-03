@@ -29,6 +29,7 @@ public class BookServiceImpl implements BookService {
     final ModelMapper modelMapper;
 
     @Override
+    @Transactional
     public boolean addBook(BookDto bookDto) {
 	if(bookRepository.existsById(bookDto.getIsbn())) {
 	    return false;
@@ -50,6 +51,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
+    @Transactional
     public BookDto removeBook(String isbn) {
 	Book book = bookRepository.findById(isbn).orElseThrow(() -> new EntityNotFoundException());
 	BookDto bookDto = modelMapper.map(book, BookDto.class);
@@ -58,46 +60,59 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
+    @Transactional
     public BookDto updateBook(String isbn, String title) {
 	Book book = bookRepository.findById(isbn).orElseThrow(() -> new EntityNotFoundException());
 	book.setTitle(title);
-	bookRepository.save(book);
+//	bookRepository.save(book);
 	return modelMapper.map(book, BookDto.class);
     }
 
     @Override
-    @Transactional(readOnly=true)
+//    @Transactional(readOnly=true)
     public Iterable<BookDto> findBooksByAuthor(String authorName) {
-//	return bookRepository.findBooksByBookAuthors(authorName).map(b -> modelMapper.map(b, BookDto.class)).collect(Collectors.toList());
-	return null;
+	Author author = authorRepository.findById(authorName).orElseThrow(() -> new EntityNotFoundException());
+	return author.getBooks().stream()
+				.map(b -> modelMapper.map(b, BookDto.class))
+				.collect(Collectors.toList());
+		//	return bookRepository.findBooksByAuthorsName(authorName).map(b -> modelMapper.map(b, BookDto.class)).collect(Collectors.toList());
     }
 
     @Override
-    @Transactional(readOnly = true)
+//    @Transactional(readOnly = true)
     public Iterable<BookDto> findBooksByPublisher(String publisherName) {
-	return bookRepository.findByPublisher(publisherName).map(b -> modelMapper.map(b, BookDto.class))
-													.collect(Collectors.toList());
+	Publisher publisher = publisherRepository.findById(publisherName).orElseThrow(() -> new EntityNotFoundException());
+	return publisher.getBooks().stream()
+					.map(b -> modelMapper.map(b, BookDto.class))
+					.collect(Collectors.toList());
+//		.collect(Collectors.toList());
+//	return bookRepository.findByPublisherPublisherName(publisherName).map(b -> modelMapper.map(b, BookDto.class))
+//													.collect(Collectors.toList());
 	
     }
 
     @Override
     public Iterable<AuthorDto> findBookAuthors(String isbn) {
-	// TODO Auto-generated method stub
-	return null;
-    }
+	Book book = bookRepository.findById(isbn).orElseThrow(EntityNotFoundException::new);
+	return book.getAuthors().stream()
+							.map(a -> modelMapper.map(a, AuthorDto.class))
+							.collect(Collectors.toList());
+		}
 
     @Override
+    @Transactional
     public Iterable<String> findPublishersByAuthor(String authorName) {
-	// TODO Auto-generated method stub
-	return null;
+	return publisherRepository.findDistinctByBooksAuthorsName(authorName).map(Publisher::getPublisherName).collect(Collectors.toList());
+//	return publisherRepository.findPublishersByAuthor(authorName);
     }
 
     @Override
+    @Transactional
     public AuthorDto removeAuthor(String authorName) {
 	Author author = authorRepository.findById(authorName).orElseThrow(() -> new EntityNotFoundException());
-	AuthorDto res = modelMapper.map(author, AuthorDto.class);
+//	bookRepository.findBooksByAuthorsName(authorName).forEach(b -> bookRepository.delete(b));
 	authorRepository.delete(author);
-	return res;
+	return modelMapper.map(author, AuthorDto.class);
     }
 
 }
